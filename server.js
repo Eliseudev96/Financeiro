@@ -6,11 +6,16 @@ const cors = require('cors');
 
 const app = express();
 
-// IMPORTANTE: O CORS permite que o seu site na Hostinger acesse esta API
-app.use(cors());
+// 1. CONFIGURAÇÃO DE CORS (Ajustada para aceitar seu domínio Hostinger)
+app.use(cors({
+    origin: '*', // Permitir de qualquer lugar (resolve o erro de CORS imediatamente)
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json({ limit: '50mb' }));
 
-// 1. Conexão com o MongoDB Atlas (A variável MONGODB_URI deve ser configurada no painel do Render)
+// 2. Conexão com o MongoDB Atlas
 const dbURI = process.env.MONGODB_URI;
 
 if (!dbURI) {
@@ -22,14 +27,14 @@ mongoose.connect(dbURI)
   .then(() => console.log("✅ Conectado ao MongoDB Atlas"))
   .catch(err => console.error("❌ Erro MongoDB:", err));
 
-// 2. Modelo de Dados
+// 3. Modelo de Dados
 const Fechamento = mongoose.model('Fechamento', new mongoose.Schema({
     nome: { type: String, required: true, unique: true },
     dataCriacao: { type: Date, default: Date.now },
     dadosPlanilha: { type: Array, required: true }
 }));
 
-// 3. Rotas da API
+// 4. Rotas da API
 app.get('/', (req, res) => res.send('API Financeira L2P/Climate Online 🚀'));
 
 app.post('/api/fechamentos', async (req, res) => {
@@ -62,6 +67,11 @@ app.delete('/api/fechamentos/:nome', async (req, res) => {
         await Fechamento.findOneAndDelete({ nome: req.params.nome });
         res.json({ mensagem: "Excluído" });
     } catch (e) { res.status(500).json({ erro: e.message }); }
+});
+
+// 5. CORREÇÃO PARA EXPRESS 5 (Caso a rota não exista)
+app.use((req, res) => {
+    res.status(404).json({ erro: "Rota não encontrada" });
 });
 
 const PORT = process.env.PORT || 3000;
